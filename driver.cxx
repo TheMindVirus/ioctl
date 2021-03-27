@@ -10,19 +10,19 @@ NTSTATUS DriverEntry
     PUNICODE_STRING RegistryPath
 )
 {
-	debug("[CALL]: DriverEntry");
-	NTSTATUS status = STATUS_SUCCESS;
+    debug("[CALL]: DriverEntry");
+    NTSTATUS status = STATUS_SUCCESS;
     WDF_DRIVER_CONFIG DriverConfig = { 0 };
 
-	status = IoAllocateDriverObjectExtension(DriverObject, KTAG_EXTENSION, sizeof(EXTENSION), (PVOID*)&ext);
-	if (NT_ERROR(status)) { debug("[WARN]: IoAllocateDriverObjectExtension Failed (0x%08lX)", status); return status; }
+    status = IoAllocateDriverObjectExtension(DriverObject, KTAG_EXTENSION, sizeof(EXTENSION), (PVOID*)&ext);
+    if (NT_ERROR(status)) { debug("[WARN]: IoAllocateDriverObjectExtension Failed (0x%08lX)", status); return status; }
 
     WDF_DRIVER_CONFIG_INIT(&DriverConfig, DriverDeviceAdd);
     DriverConfig.EvtDriverUnload = DriverUnload;
 
     status = WdfDriverCreate(DriverObject, RegistryPath, WDF_NO_OBJECT_ATTRIBUTES, &DriverConfig, WDF_NO_HANDLE);
     if (NT_ERROR(status)) { debug("[WARN]: WdfDriverCreate Failed (0x%08lX)", status); return status; }
-	return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS DriverDeviceAdd
