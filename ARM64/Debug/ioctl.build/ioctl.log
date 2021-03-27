@@ -1,0 +1,25 @@
+﻿  Building 'ioctl' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
+  Stamping ARM64\Debug\ioctl.build\ioctl.inf
+  Stamping [Version] section with DriverVer=03/27/2021,4.16.24.669
+  driver.cxx
+  Generating code
+  Finished generating code
+  ioctl.vcxproj -> C:\Users\Alastair\Documents\Visual Studio 2019\Projects\ioctl\ARM64\Debug\ioctl.sys
+  Done Adding Additional Store
+  Successfully signed: C:\Users\Alastair\Documents\Visual Studio 2019\Projects\ioctl\ARM64\Debug\ioctl.sys
+  
+  Driver is 'Universal'.
+  ........................
+  Signability test complete.
+  
+  Errors:
+  None
+  
+  Warnings:
+  None
+  
+  Catalog generation complete.
+  C:\Users\Alastair\Documents\Visual Studio 2019\Projects\ioctl\ARM64\Debug\ioctl\ioctl.cat
+  Done Adding Additional Store
+  Successfully signed: ARM64\Debug\ioctl\ioctl.cat
+  
