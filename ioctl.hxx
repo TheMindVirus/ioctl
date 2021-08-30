@@ -3,7 +3,7 @@
 
 #define IOCTL_LENGTH   1500
 
-#define DEVICE_NAME      "IOCTL"
+#define DEVICE_NAME      "IOCTLMBOX"
 #define DEVICE_DOSNAME   L"\\DosDevices\\" DEVICE_NAME
 #define DEVICE_SYMLINK   L"\\\\.\\" DEVICE_NAME
 
@@ -17,13 +17,8 @@
 
 //=========================[ Vendor Function Codes are limited to 11-bit (0x800->0xFFF) ]=========================//
 
-#define IOCTL_SOCKET   VENDOR_CTL_CODE(0x800, METHOD_BUFFERED)
-#define IOCTL_HWTEST   VENDOR_CTL_CODE(0x801, METHOD_NEITHER)
+#define IOCTL_MAILBOX   VENDOR_CTL_CODE(0x808, METHOD_BUFFERED)
 
 //================================================================================================================//
-
-#define HWTEST_ADDRESS   0xFE200010
-#define HWTEST_MASK      0x00000024
-#define HWTEST_DELAY     100 * 1000
 
 #endif//_IOCTL_HXX_

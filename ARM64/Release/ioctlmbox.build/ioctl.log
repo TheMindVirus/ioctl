@@ -1,0 +1,19 @@
+﻿  Building 'ioctlmbox' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
+  Stamping ARM64\Release\ioctlmbox.build\ioctl.inf
+  Stamping [Version] section with DriverVer=08/30/2021,1.3.2.22
+  ioctl.vcxproj -> C:\Users\Alastair\Documents\Visual Studio 2019\Projects\ioctl_mbox\ARM64\Release\ioctlmbox.sys
+  Driver is 'Universal'.
+  .........................
+  Signability test complete.
+  
+  Errors:
+  None
+  
+  Warnings:
+  None
+  
+  Catalog generation complete.
+  C:\Users\Alastair\Documents\Visual Studio 2019\Projects\ioctl_mbox\ARM64\Release\ioctlmbox\ioctlmbox.cat
+  Done Adding Additional Store
+  Successfully signed: ARM64\Release\ioctlmbox\ioctlmbox.cat
+  

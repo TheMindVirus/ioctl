@@ -138,60 +138,35 @@ void DeviceIoControl
 
     switch (IoControlCode)
     {
-        case (IOCTL_SOCKET):
+        case (IOCTL_MAILBOX):
         {
             debug("[INFO]: Begin I/O Operation");
-            ext.nBytes = (InputBufferLength < OutputBufferLength)
-                       ?  InputBufferLength : OutputBufferLength;
+            //ext.nBytes = (InputBufferLength < OutputBufferLength)
+            //           ?  InputBufferLength : OutputBufferLength;
+            ext.nBytes = 0;
         
             status = WdfRequestRetrieveInputMemory(Request, &(ext.inMemory));
             if (NT_ERROR(status)) { debug("[WARN]: WdfRequestRetrieveInputMemory Failed (0x%08lX)", status); return; }
 
-            status = WdfRequestRetrieveOutputMemory(Request, &(ext.outMemory));
-            if (NT_ERROR(status)) { debug("[WARN]: WdfRequestRetrieveOutputMemory Failed (0x%08lX)", status); return; }
+            //status = WdfRequestRetrieveOutputMemory(Request, &(ext.outMemory));
+            //if (NT_ERROR(status)) { debug("[WARN]: WdfRequestRetrieveOutputMemory Failed (0x%08lX)", status); return; }
 
-            status = WdfMemoryCopyToBuffer(ext.inMemory, 0, WdfMemoryGetBuffer(ext.outMemory, NULL), ext.nBytes);
-            if (NT_ERROR(status)) { debug("[WARN]: WdfMemoryCopyToBuffer Failed (0x%08lX)", status); return; }
+            ext.buffer = (PUINT32)WdfMemoryGetBuffer(ext.inMemory, NULL);
+            if (!(ext.buffer)) { debug("[WARN]: WdfMemoryGetBuffer Returned NULL"); return; }
+
+            for (SIZE_T i = 0; i < InputBufferLength; ++i) { ext.mbox_packet[i] = ext.buffer[i]; debug("[INFO]: %u", (UINT8)(ext.buffer[i])); }
+            if (MBOX_FAILURE == MailboxExchange(MBOX_CHANNEL)) { debug("[WARN]: Mailbox Exchange Returned Failure"); return; }
+            ext.nBytes = ext.mbox_packet[0]; if (ext.nBytes > OutputBufferLength) { ext.nBytes = OutputBufferLength; }
+           
+            status = WdfMemoryAssignBuffer(ext.outMemory, ext.buffer, ext.nBytes);
+            if (NT_ERROR(status)) { debug("[WARN]: WdfMemoryAssignBuffer Failed (0x%08lX)", status); return; }
+
+            //status = WdfMemoryCopyToBuffer(ext.inMemory, 0, WdfMemoryGetBuffer(ext.outMemory, NULL), ext.nBytes);
+            //if (NT_ERROR(status)) { debug("[WARN]: WdfMemoryCopyToBuffer Failed (0x%08lX)", status); return; }
 
             information = ext.nBytes;
             status = STATUS_SUCCESS;
             debug("[INFO]: I/O Operation Complete");
-            goto complete;
-        }
-        break;
-        case (IOCTL_HWTEST):
-        {
-            ext.bytes = 1;
-            ext.offset = 0;
-            ext.base.QuadPart = HWTEST_ADDRESS;
-           
-            ext.address = (PULONG)MmMapIoSpace(ext.base, ext.bytes, MmNonCached);
-            if (!ext.address) { debug("[WARN]: MmMapIoSpace Failed"); status = STATUS_UNSUCCESSFUL; goto complete; }
-            
-            ext.reg = ext.address + (ext.offset / sizeof(ULONG));
-            ext.value = 0;
-            ext.tmp = 0;
-
-            ext.value = ext.tmp;
-            ext.tmp = READ_REGISTER_ULONG(ext.reg);
-            debug("[MMIO]: Stage %d | Address = 0x%016llX | Value = 0x%08lX", 1, MmGetPhysicalAddress(ext.reg).QuadPart, ext.value);
-
-            ext.value |= HWTEST_MASK;
-            WRITE_REGISTER_ULONG(ext.reg, ext.value);
-            KeStallExecutionProcessor((HWTEST_DELAY) / 2);
-
-            ext.value = READ_REGISTER_ULONG(ext.reg);
-            debug("[MMIO]: Stage %d | Address = 0x%016llX | Value = 0x%08lX", 2, MmGetPhysicalAddress(ext.reg).QuadPart, ext.value);
-
-            ext.value = ext.tmp;
-            WRITE_REGISTER_ULONG(ext.reg, ext.value);
-            KeStallExecutionProcessor((HWTEST_DELAY) / 2);
-
-            ext.value = READ_REGISTER_ULONG(ext.reg);
-            debug("[MMIO]: Stage %d | Address = 0x%016llX | Value = 0x%08lX", 3, MmGetPhysicalAddress(ext.reg).QuadPart, ext.value);
-
-            MmUnmapIoSpace(ext.address, ext.bytes);
-            status = STATUS_SUCCESS;
             goto complete;
         }
         break;
@@ -208,4 +183,95 @@ complete:
     WdfRequestCompleteWithInformation(Request, status, information);
     return;
     UNREFERENCED_PARAMETER(Queue);
+}
+
+UINT32 MailboxExchange(UINT8 channel)
+{
+    UINT32 status = MBOX_FAILURE;
+
+    ext.base.QuadPart = MBOX_BASE;
+    ext.mbox_base = (PULONG)MmMapIoSpace(ext.base, MBOX_SIZE, MmNonCached);
+    if (!(ext.mbox_base)) { debug("[WARN]: Failed to Memory-Map Mailbox"); goto cleanup; }
+
+    ext.max.QuadPart = PERI_MASK;
+    ext.mbox_packet = (PULONG)MmAllocateContiguousMemory(IOCTL_LENGTH, ext.max);
+    if (!(ext.mbox_packet)) { debug("[WARN]: Failed to Memory-Map Mailbox Packet"); goto cleanup; }
+
+    ext.checked = 0;
+    ext.mail = ((((ULONGLONG)(MmGetPhysicalAddress(ext.mbox_packet).QuadPart)) & ~0xF) | (channel & 0xF)); //0xF reserved for 4-bit channel //<--Needs to be a physical address so the VC knows where it is
+
+    ext.critical = TRUE;
+    KeEnterCriticalRegion();
+
+    ext.lock = NULL;
+    ext.prevState = NULL;
+    KeInitializeSpinLock(&(ext.lock));
+    KeAcquireSpinLock(&(ext.lock), &(ext.prevState));
+
+    mmio_write((ext.mbox_base), MBOX_READ, 0x00000000);
+    mmio_write((ext.mbox_base), 1, 0x00000000);
+    mmio_write((ext.mbox_base), 2, 0x00000000);
+    mmio_write((ext.mbox_base), 3, 0x00000000);
+    mmio_write((ext.mbox_base), MBOX_POLL, 0x00000000);
+    mmio_write((ext.mbox_base), MBOX_SENDER, 0x00000000);
+    //mmio_write((ext.mbox_base), MBOX_STATUS, 0x00000000);
+    mmio_write((ext.mbox_base), MBOX_CONFIG, 0x00000400);
+    //mmio_write((ext.mbox_base), MBOX_WRITE,  0x00000000);
+    KeStallExecutionProcessor(MBOX_TIMEOUT);
+
+    ext.attempt = 0;
+    while ((mbox_peek() & MBOX_FULL) != 0)
+    {
+        debug("[HANG]: Mailbox Write");
+        KeStallExecutionProcessor(MBOX_TIMEOUT);
+        ++(ext.attempt);
+        if ((ext.attempt) > MBOX_RETRIES) { debug("[WARN]: Mailbox Write Error"); goto cleanup; }
+    }
+    mbox_write(ext.mail);
+    KeStallExecutionProcessor(MBOX_TIMEOUT);
+
+    ext.timeout1 = 0;
+    ext.timeout2 = 0;
+    while (TRUE)
+    {
+        while ((mbox_peek() & MBOX_EMPTY) != 0)
+        {
+            debug("[HANG]: Mailbox Read");
+            KeStallExecutionProcessor(MBOX_TIMEOUT);
+            ++(ext.timeout2);
+            if ((ext.timeout2) > MBOX_RETRIES) { debug("[MBOX]: Mailbox Read Error"); goto cleanup; }
+        }
+
+        ext.checked = mbox_read();
+        if ((ext.mail) == (ext.checked)) { status = MBOX_SUCCESS; goto cleanup; }
+
+        debug("[HANG]: Mailbox Check");
+        KeStallExecutionProcessor(MBOX_TIMEOUT);
+        ++(ext.timeout1);
+        if ((ext.timeout1) > MBOX_RETRIES) { debug("[MBOX]: Mailbox Check Error"); goto cleanup; }
+    }
+
+cleanup:
+    if ((ext.critical) == TRUE)
+    {
+        KeLeaveCriticalRegion();
+        ext.critical = FALSE;
+    }
+    if ((ext.prevState != NULL) && (ext.lock != NULL))
+    {
+        KeReleaseSpinLock(&(ext.lock), ext.prevState);
+        ext.prevState = NULL;
+        ext.lock = NULL;
+    }
+    if ((ext.mbox_packet) && (ext.mbox_packet != (PULONG)0xCDCDCDCDCDCDCDCD))
+    {
+        MmFreeContiguousMemory(ext.mbox_packet);
+        ext.mbox_packet = NULL;
+    }
+    if ((ext.mbox_base) && (ext.mbox_base != (PULONG)0xCDCDCDCDCDCDCDCD))
+    {
+        MmUnmapIoSpace(ext.mbox_base, MBOX_SIZE);
+        ext.mbox_base = NULL;
+    }
+    return status;
 }

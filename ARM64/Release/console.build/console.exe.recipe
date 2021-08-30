@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\Users\Alastair\Documents\Visual Studio 2019\Projects\ioctl\ARM64\Release\console.exe</FullPath>
+      <FullPath>C:\Users\Alastair\Documents\Visual Studio 2019\Projects\ioctl_mbox\ARM64\Release\console.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

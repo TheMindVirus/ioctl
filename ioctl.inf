@@ -43,7 +43,7 @@ AddReg = Driver.Registry
 AddReg = Driver.Registry
 
 [Driver.Registry]
-HKR,, LocationInformationOverride,, "This Machine"
+HKR,, LocationInformationOverride,, "This Pi"
 HKR,, DeviceType, %REG_DWORD%, %FILE_DEVICE_VENDOR%
 HKR,, DeviceCharacteristics, %REG_DWORD%, %FILE_DEVICE_SECURE_OPEN%
 HKR,, Security,, "D:P(A;CI;GA;;;BA)(A;CI;GA;;;SY)"
@@ -67,10 +67,10 @@ HKR,, TypesSupported, %REG_DWORD%, %SERVICE_EVENTS%
 
 [Strings]
 ProviderName = "Alastair Cota"
-DeviceName = "IOCTL Test Driver"
-DriverName = "ioctl"
+DeviceName = "IOCTL Mailbox Test Driver"
+DriverName = "ioctlmbox"
 ClassName = "Samples"
-InstallPath = "ROOT\SAMPLE\IOCTL"
+InstallPath = "ROOT\SAMPLE\IOCTLMBOX"
 SourceDisk = "Windows Diagnostic Drivers"
 
 REG_DWORD = 0x10001
